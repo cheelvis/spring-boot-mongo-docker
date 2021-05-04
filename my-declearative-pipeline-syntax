@@ -1,0 +1,42 @@
+pipeline{
+    agent{
+      label 'node1'   
+    }
+    tools{
+       maven 'MAVEN3'
+    }
+    stages{
+        stage('code checkout'){
+            steps{
+               git 'https://github.com/cheelvis/spring-boot-mongo-docker.git' 
+            }
+        }
+        stage('maven build'){
+            steps{
+              sh 'mvn package'  
+            }
+            
+        }
+        stage('docker build'){
+            steps{
+                sh 'docker build -t cheelvis/mongodb .'
+            }
+        }
+        stage('docker push'){
+            steps{
+                withCredentials([string(credentialsId: 'DOCKER_HUB_PASSWORD', variable: 'DOCKER_HUB_PASSWORD')]){
+                 sh  'docker login -u cheelvis -p ${DOCKER_HUB_PASSWORD}'
+                    
+                }
+                sh 'docker push cheelvis/mongodb'
+            }
+        }
+        stage('kubernetes deploy'){
+            steps{
+                sh 'kubectl apply -f springBootMongo.yml'
+            }
+        }
+        
+    }
+    
+}
